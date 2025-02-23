@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>
+  File: README
+  
+    &mdash; Documentation by YARD 0.9.37
+  
+</title>
+
+  <link rel="stylesheet" href="css/style.css" type="text/css" />
+
+  <link rel="stylesheet" href="css/common.css" type="text/css" />
+
+<script type="text/javascript">
+  pathId = "README";
+  relpath = '';
+</script>
+
+
+  <script type="text/javascript" charset="utf-8" src="js/jquery.js"></script>
+
+  <script type="text/javascript" charset="utf-8" src="js/app.js"></script>
+
+
+  </head>
+  <body>
+    <div class="nav_wrap">
+      <iframe id="nav" src="class_list.html?1"></iframe>
+      <div id="resizer"></div>
+    </div>
+
+    <div id="main" tabindex="-1">
+      <div id="header">
+        <div id="menu">
+  
+    <a href="_index.html">Index</a> &raquo; 
+    <span class="title">File: README</span>
+  
+</div>
+
+        <div id="search">
+  
+    <a class="full_list_link" id="class_list_link"
+        href="class_list.html">
+
+        <svg width="24" height="24">
+          <rect x="0" y="4" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="12" width="24" height="4" rx="1" ry="1"></rect>
+          <rect x="0" y="20" width="24" height="4" rx="1" ry="1"></rect>
+        </svg>
+    </a>
+  
+</div>
+        <div class="clear"></div>
+      </div>
+
+      <div id="content"><div id='filecontents'>
+<h1 id="label-Exeggutor+-F0-9F-8C-B4">Exeggutor 🌴</h1>
+
+<h2 id="label-A+Simple-2C+Capable-2C+and+Unified+Interface+for+Process+Spawning+in+Ruby">A Simple, Capable, and Unified Interface for Process Spawning in Ruby</h2>
+
+<p>Tired of juggling between system, backticks, and Open3? Exeggutor provides one simple method that does it all - safely spawn processes with real-time output, captured results, and sane error handling.</p>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_files'>files</span> <span class='op'>=</span> <span class='id identifier rubyid_run!'><span class='object_link'><a href="top-level-namespace.html#run!-instance_method" title="#run! (method)">run!</a></span></span><span class='lparen'>(</span><span class='words_beg'>%W[</span><span class='tstring_content'>ls</span><span class='words_sep'> </span><span class='tstring_content'>-l</span><span class='tstring_end'>]</span></span><span class='rparen'>)</span><span class='period'>.</span><span class='id identifier rubyid_stdout'><span class='object_link'><a href="ProcessResult.html#stdout-instance_method" title="ProcessResult#stdout (method)">stdout</a></span></span><span class='period'>.</span><span class='id identifier rubyid_split'>split</span><span class='lparen'>(</span><span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>\n</span><span class='tstring_end'>&quot;</span></span><span class='rparen'>)</span>
+<span class='id identifier rubyid_puts'>puts</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Found files: </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_files'>files</span><span class='embexpr_end'>}</span><span class='tstring_end'>&quot;</span></span>
+
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_run!'><span class='object_link'><a href="top-level-namespace.html#run!-instance_method" title="#run! (method)">run!</a></span></span><span class='lparen'>(</span><span class='words_beg'>%W[</span><span class='tstring_content'>cp</span><span class='words_sep'> </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_old_file'>old_file</span><span class='embexpr_end'>}</span><span class='words_sep'> </span><span class='embexpr_beg'>#{</span><span class='id identifier rubyid_new_file'>new_file</span><span class='embexpr_end'>}</span><span class='tstring_end'>]</span></span><span class='comma'>,</span> <span class='label'>can_fail:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='comment'># Works even if old_file or new_file have spaces
+</span><span class='id identifier rubyid_raise'>raise</span> <span class='tstring'><span class='tstring_beg'>&quot;</span><span class='tstring_content'>Failed to copy - is there enough disk space?</span><span class='tstring_end'>&quot;</span></span> <span class='kw'>if</span> <span class='op'>!</span><span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_success?'>success?</span>
+
+<span class='id identifier rubyid_result'>result</span> <span class='op'>=</span> <span class='id identifier rubyid_run!'><span class='object_link'><a href="top-level-namespace.html#run!-instance_method" title="#run! (method)">run!</a></span></span><span class='lparen'>(</span><span class='words_beg'>%W[</span><span class='tstring_content'>run_build.sh</span><span class='tstring_end'>]</span></span><span class='comma'>,</span> <span class='label'>show_stderr:</span> <span class='kw'>true</span><span class='rparen'>)</span> <span class='comment'># Shows long build&#39;s output while also capturing it
+</span><span class='id identifier rubyid_output_path'>output_path</span> <span class='op'>=</span> <span class='id identifier rubyid_result'>result</span><span class='period'>.</span><span class='id identifier rubyid_stdout'>stdout</span>
+</code></pre>
+
+<h2 id="label-Why+Exeggutor-3F">Why Exeggutor?</h2>
+
+<table role="table">
+<thead>
+<tr>
+<th>Problem with Standard Ruby APIs</th>
+<th>Exeggutor Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Subshells are slow and insecure (‘system(“rm *”)`)</td>
+<td>Never uses a subshell, always spawns processes directly</td>
+</tr>
+<tr>
+<td>Non-subshells use ugly varargs syntax (‘system(’cp’, old, “#new/foo”)‘)</td>
+<td>Encourages elegant %W syntax and takes an array: ‘run!(%W[cp #old #new/foo])`</td>
+</tr>
+<tr>
+<td>Silent process failures are typically catastrophic but require manual checks</td>
+<td>Exception on failure by default (with rich error context)</td>
+</tr>
+<tr>
+<td>No simple way to both capture stdout/stderr while simultaneously printing either of them</td>
+<td>Always captures stdout/stderr, and can optionally print either (<em>while</em> the program is running)</td>
+</tr>
+<tr>
+<td>Different APIs for different use cases</td>
+<td>Single method with smart defaults</td>
+</tr>
+</tbody>
+</table>
+
+<p>Features🏁 Always safe - No subshell spawning, array-based arguments by default🎛 Unified interface - Replace 5+ different Ruby process APIs📡 Real-time output - Choose to stream stdout/stderr while capturing🚨 Meaningful errors - Failed commands raise exceptions with stdout/stderr attached📦 Rich results - Get exit code, duration, captured output in one object⚡ Performance - Avoid subshell overhead, efficient IO handling</p>
+
+<h2 id="label-Installation">Installation</h2>
+
+<pre class="code ruby"><code class="ruby"><span class='id identifier rubyid_gem'>gem</span> <span class='id identifier rubyid_install'>install</span> <span class='id identifier rubyid_exeggutor'>exeggutor</span>
+</code></pre>
+
+<h2 id="label-Examples">Examples</h2>
+
+<pre class="code ruby"><code class="ruby"># Simple command (raises on error)
+run!(%W[ls -l])
+
+# Safe argument handling
+path = &quot;file with spaces.txt&quot;
+run!(%W[rm -f #{path}]) # No shell escaping needed!
+Capturing Output
+ruby
+Copy
+# Capture stdout only
+result = run!(%W[ls -l], capture_stdout: true)
+
+# Capture both streams
+result = run!(%W[ls /nonexistent], capture_stdout: true, capture_stderr: true)
+puts result.stderr # &quot;ls: /nonexistent: No such file...&quot;
+
+# Get execution metadata
+puts &quot;Took #{result.duration.round(2)}s, exited #{result.exitcode}&quot;
+Real-time Output (Teeing)
+ruby
+Copy
+# Print stdout while capturing it
+result = run!(%W[long-running-process], 
+  tee_stdout: true, 
+  capture_stdout: true
+)
+Error Handling
+ruby
+Copy
+begin
+  run!(%W[git push])
+rescue Exeggutor::ProcessError =&gt; e
+  puts &quot;Failed with status #{e.result.exitcode}&quot;
+  puts &quot;Error output:&quot;, e.result.stderr
+  raise # Optional: re-raise if unrecoverable
+end
+</code></pre>
+
+<h1 id="label-Optional-3A+disable+exceptions">Optional: disable exceptions</h1>
+
+<p>result = <a href="maybe-fail">run!(%W</a>, check: false) unless result.success? # Handle manually end Comparison Guide Traditional Ruby vs Exeggutor Task Ruby Standard Library Exeggutor Run basic command system(‘ls’) (unsafe) <a href="ls">run!(%W</a>) (safe) Capture stdout <code>ls</code> <a href="ls">run!(%W</a>, capture_stdout: true) Capture stderr <a href="1">Open3.capture3(…)</a> run!(…, capture_stderr: true) Run + show output system(…) (no capture) run!(…, tee_stdout: true) Handle failures Manual $?.success? checks Automatic exceptions + rich data Safe argument handling Manual .shellescape Automatic via array arguments Advanced Usage Environment Variables ruby Copy run!(%W[rails server], env: =&gt; “production”) Timeouts ruby Copy begin <a href="slow-process">run!(%W</a>, timeout: 30) rescue Exeggutor::TimeoutError puts “Process took too long!” end Input Redirection ruby Copy run!(%W[grep text], input: “HellontextnWorld”) Dry Runs ruby Copy</p>
+
+<h1 id="label-See+what+would+run+without+executing">See what would run without executing</h1>
+
+<p>run!(%W[rm -rf /dangerous], dry_run: true)</p>
+
+<h1 id="label-Outputs-3A+Would+execute-3A+-5B-22rm-22-2C+-22-rf-22-2C+-22-2Fdangerous-22-5D">Outputs: Would execute: [“rm”, “-rf”, “/dangerous”]</h1>
+
+<p>Design Philosophy Batteries Included - 90% use cases covered with smart defaults</p>
+
+<p>Unix-like Composition - Pipe input/output through code, not shells</p>
+
+<p>Developer Experience First - Errors include context, results are self-contained</p>
+
+<p>Zero Magic - Predictable behavior through explicit flags</p>
+</div></div>
+
+      <div id="footer">
+  Generated on Sat Feb 22 14:32:09 2025 by
+  <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
+  0.9.37 (ruby-3.4.1).
+</div>
+
+    </div>
+  </body>
+</html>

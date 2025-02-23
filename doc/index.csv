@@ -1,0 +1,10 @@
+name,type,path
+ProcessResult,Class,ProcessResult.md
+ProcessResult.initialize,Method,ProcessResult.md#method-i-initialize
+ProcessResult.success?,Method,ProcessResult.md#method-i-success?
+exit_code,Attribute,ProcessResult.md#attribute-i-exit_code
+stderr,Attribute,ProcessResult.md#attribute-i-stderr
+stdout,Attribute,ProcessResult.md#attribute-i-stdout
+ProcessError,Class,ProcessError.md
+ProcessError.initialize,Method,ProcessError.md#method-i-initialize
+result,Attribute,ProcessError.md#attribute-i-result
