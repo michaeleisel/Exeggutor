@@ -1,33 +1,50 @@
 require 'open3'
 require 'shellwords'
 
-class ProcessResult
-  attr_reader :stdout, :stderr, :exit_code
+module Exeggutor
+  # Represents the result of a process execution.
+  #
+  # @attr_reader stdout [String] The standard output of the process.
+  # @attr_reader stderr [String] The standard error of the process.
+  # @attr_reader exit_code [Integer] The exit code of the process.
+  class ProcessResult
+    attr_reader :stdout, :stderr, :exit_code
 
-  def initialize(stdout:, stderr:, exit_code:)
-    @stdout = stdout
-    @stderr = stderr
-    @exit_code = exit_code
+    # @private
+    def initialize(stdout:, stderr:, exit_code:)
+      @stdout = stdout
+      @stderr = stderr
+      @exit_code = exit_code
+    end
+
+    # Checks if the process was successful.
+    #
+    # @return [Boolean] True if the exit code is 0, otherwise false.
+    def success?
+      exit_code == 0
+    end
   end
 
-  def success?
-    exit_code == 0
+  # Represents an error that occurs during a process execution.
+  # The error contains a {ProcessResult} object with details about the process.
+  #
+  # @attr_reader result [ProcessResult] The result of the process execution.
+  class ProcessError < StandardError
+    attr_reader :result
+
+    # @private
+    def initialize(result)
+      @result = result
+    end
   end
-end
 
-class ProcessError < StandardError
-  attr_reader :result
-
-  def initialize(result)
-    @result = result
-  end
-end
-
-def run_popen3(args, env)
-  if env
-    Open3.popen3(env, [args[0], args[0]], *args)
-  else
-    Open3.popen3([args[0], args[0]], *args)
+  # @private
+  def run_popen3(args, env)
+    if env
+      Open3.popen3(env, [args[0], args[0]], *args)
+    else
+      Open3.popen3([args[0], args[0]], *args)
+    end
   end
 end
 
@@ -39,6 +56,8 @@ end
 # @param show_stderr [Boolean] If true, prints stderr to the console in real-time.
 # @param cwd [String, nil] The working directory to run the command in. If nil, uses the current working directory.
 # @param stdin_data [String, nil] Input data to pass to the command's stdin. If nil, doesn't pass any data to stdin.
+# @param env_vars [Hash{String => String}, nil] A hashmap containing environment variable overrides,
+#        or `nil` if no overrides are desired
 #
 # @return [ProcessResult] An object containing process info such as stdout, stderr, and exit code. Waits for the command to complete to return.
 #
