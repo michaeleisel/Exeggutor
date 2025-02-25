@@ -8,4 +8,6 @@ Gem::Specification.new do |s|
   s.files       = Dir["lib/**/*.rb"]
   s.homepage    = "https://github.com/michaeleisel/Exeggutor"
   s.license     = "MIT"
+
+  s.add_development_dependency "minitest"
 end
