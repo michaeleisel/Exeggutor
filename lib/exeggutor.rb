@@ -39,12 +39,78 @@ module Exeggutor
   end
 
   # @private
-  def run_popen3(args, env)
+  def self.run_popen3(args, env)
+    # Use this weird [args[0], args[0]] thing for the case where a command with just one arg is being run
     if env
-      Open3.popen3(env, [args[0], args[0]], *args)
+      Open3.popen3(env, [args[0], args[0]], *args.drop(1))
     else
-      Open3.popen3([args[0], args[0]], *args)
+      Open3.popen3([args[0], args[0]], *args.drop(1))
     end
+  end
+
+  def self.run!(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil, cwd: nil, stdin_data: nil)
+    # TODO: expand "~"? popen3 doesn't expand it by default
+    if cwd
+      stdin_stream, stdout_stream, stderr_stream, wait_thread = Dir.chdir(cwd) { Exeggutor::run_popen3(args, env) }
+    else
+      stdin_stream, stdout_stream, stderr_stream, wait_thread = Exeggutor::run_popen3(args, env)
+    end
+
+    stdin_stream.write(stdin_data) if stdin_data
+    stdin_stream.close
+
+    # Make the streams as synchronous as possible, to minimize the possibility of a surprising lack
+    # of output
+    stdout_stream.sync = true
+    stderr_stream.sync = true
+
+    stdout_str = +''  # Using unfrozen string
+    stderr_str = +''
+
+    # Start readers for both stdout and stderr
+    stdout_thread = Thread.new do
+      while (line = stdout_stream.gets)
+
+        stdout_str << line
+        print line if show_stdout
+      end
+    end
+
+    stderr_thread = Thread.new do
+      while (line = stderr_stream.gets)
+        stderr_str << line
+        warn line if show_stderr
+      end
+    end
+
+    # Wait for process completion
+    exit_status = wait_thread.value
+
+    # Ensure all IO is complete
+    stdout_thread.join
+    stderr_thread.join
+
+    # Close open pipes
+    stdout_stream.close
+    stderr_stream.close
+
+    result = ProcessResult.new(
+      stdout: stdout_str.force_encoding('UTF-8'),
+      stderr: stderr_str.force_encoding('UTF-8'),
+      exit_code: exit_status.exitstatus
+    )
+
+    if !can_fail && !result.success?
+      error_str = <<~ERROR_STR
+        Command failed: #{args.shelljoin}
+        Exit code: #{result.exit_code}
+        stdout: #{result.stdout}
+        stderr: #{result.stderr}
+      ERROR_STR
+      raise ProcessError.new(result), error_str
+    end
+
+    result
   end
 end
 
@@ -62,63 +128,6 @@ end
 # @return [ProcessResult] An object containing process info such as stdout, stderr, and exit code. Waits for the command to complete to return.
 #
 # @raise [ProcessError] If the command fails and `can_fail` is false.
-def run!(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil, cwd: nil, stdin_data: nil)
-  # TODO: expand "~"? popen3 doesn't expand it by default
-  if cwd
-    stdin_stream, stdout_stream, stderr_stream, wait_thread = Dir.chdir(cwd) { run_popen3(args, env) }
-  else
-    stdin_stream, stdout_stream, stderr_stream, wait_thread = run_popen3(args, env)
-  end
-
-  stdin_stream.write(stdin_data) if stdin_data
-  stdin_stream.close
-
-  stderr_stream.sync = true # Match terminals more closely
-
-  stdout_str = +''  # Using unfrozen string
-  stderr_str = +''
-
-  # Start readers for both stdout and stderr
-  stdout_thread = Thread.new do
-    while (line = stdout_stream.gets)
-      stdout_str << line
-      print line if show_stdout
-    end
-  end
-
-  stderr_thread = Thread.new do
-    while (line = stderr_stream.gets)
-      stderr_str << line
-      warn line if show_stderr
-    end
-  end
-
-  # Wait for process completion
-  exit_status = wait_thread.value
-
-  # Ensure all IO is complete
-  stdout_thread.join
-  stderr_thread.join
-
-  # Close open pipes
-  stdout_stream.close
-  stderr_stream.close
-
-  result = ProcessResult.new(
-    stdout: stdout_str.force_encoding('UTF-8'),
-    stderr: stderr_str.force_encoding('UTF-8'),
-    exit_code: exit_status.exitstatus
-  )
-
-  if !can_fail && !result.success?
-    error_str = <<~ERROR_STR
-      Command failed: #{args.shelljoin}
-      Exit code: #{result.exit_code}
-      stdout: #{result.stdout}
-      stderr: #{result.stderr}
-    ERROR_STR
-    raise ProcessError.new(result), error_str
-  end
-
-  result
+def run!(...)
+  Exeggutor::run!(...)
 end
