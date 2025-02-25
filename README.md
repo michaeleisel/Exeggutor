@@ -8,11 +8,11 @@ Tired of juggling between `system(...)`, `` `...` ``, and `Open3`? Exeggutor pro
 # Copy old_file to #{new_dir}/foo, and raise an exception if it fails
 cmd!(%W[cp #{old_file} #{new_dir}/foo]) # Exception raised by default on failure
 
-# Collect stdout from a long-running build task while showing the stdout/stderr progress updates as they're printed out
-output = cmd!(%W[run_build.sh], show_stdout: true, show_stderr: true).stdout
+# Collect stdout from a long-running build task while showing the progress updates as they're printed out to stderr
+output = cmd!(%W[run_build.sh], show_stderr: true).stdout
 
-# Manual error handling - diff uses exit code 1 if files are different, and >1 if an error occurred
-diff_result = cmd!(%W[diff file1 file2], can_fail: true)
+# Manual error handling - diff uses exit code 0 if files are the same, 1 if files are different, and >1 if an error occurred
+diff_result = cmd!(%W[diff file1 file2], can_fail: true) # Don't throw an exception, let the developer handle it
 if diff_result.exit_code == 0
     puts "files are identical"
 elsif diff_result.exit_code == 1
@@ -29,9 +29,9 @@ Although Ruby has many different ways of running a subprocess, they all have var
 |Problem with Standard Ruby APIs|Exeggutor Solution|
 |-|-|
 |Subshells are slow to spawn, error-prone, and insecure | Exeggutor ever uses a subshell and always runs processes directly|
-|Non-subshells use ugly varargs syntax (e.g. `system('cp', old, "#{new}/foo")`)        |Exeggutor encourages elegant %W syntax by taking an array for the arguments (e.g. `cmd!(%W[cp #{old} #{new}/foo])`)|
+|Non-subshells use ugly varargs syntax (e.g. `system('cp', old, "#{new}/foo")`)        |Exeggutor encourages elegant %W syntax by taking an array for the arguments parameter (e.g. `cmd!(%W[cp #{old} #{new}/foo])`)|
 |Process failures are silent, requiring manual checks|Exeggutor raises an exception on failure by default (with rich error context)|
-|No simple way to both capture stdout/stderr as strings afterwards and simultaneously printing                       them |Exeggutor always captures stdout/stderr, and can optionally print either (_while_ the program is running)|
+|No simple way to both capture stdout/stderr as strings afterwards and also print them to the shell in real-time |Exeggutor always captures stdout/stderr, and can optionally print them in real-time|
 |Different APIs for different use cases|Exeggutor consists of a single method with smart defaults and many optional named parameters|
 
 #### Installation
@@ -40,6 +40,10 @@ Although Ruby has many different ways of running a subprocess, they all have var
 gem install exeggutor
 ```
 
-#### Full API
+#### Documentation
 
-Exeggutor's 
+Docs are available [here](https://www.rubydoc.info/gems/exeggutor/Exeggutor#run!-class_method).
+
+#### Future directions
+
+Exeggutor is based on my own experiences, which typically involve blocking calls whose failure would prevent the program continuing any further. However, there are many other use cases, such as running shell commands in the REPL (where backticks still shine), non-blocking calls, subshells, and making the subprocess think it's in a TTY. All of these are achievable under the same (or maybe one additional) method, if the demand is there.
