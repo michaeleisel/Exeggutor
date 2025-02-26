@@ -22,6 +22,17 @@ else
 end
 ```
 
+<div style="display: flex; width: 100%; justify-content: space-between;">
+  <div style="text-align: center; width: 45%;">
+    <div>From this:</div>
+    <img src="left_image_url" alt="Left Image" style="width: 100%; object-fit: contain;">
+  </div>
+  <div style="text-align: center; width: 45%;">
+    <div>to this:</div>
+    <img src="right_image_url" alt="Right Image" style="width: 100%; object-fit: contain;">
+  </div>
+</div>
+
 #### Overview
 
 Although Ruby has many different ways of running a subprocess, they all have various drawbacks and quirks. Also, some of the most convenient ways of calling a process, e.g. with backticks, are the most dangerous, because they spawn a subshell. Here's an overview of how Exeggutor solves these shortcomings:
