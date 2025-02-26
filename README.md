@@ -40,8 +40,9 @@ end
 
 # Async execution
 handle = exeg_async(%W[long_running_process.sh])
-handle.on_stdout
-
+handle.on_stdout do |line|
+  puts "new line from stdout: #{line}"
+end
 ```
 
 <div style="display: flex; width: 100%; justify-content: space-between;">
