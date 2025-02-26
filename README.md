@@ -4,6 +4,16 @@
 
 Tired of juggling between `system(...)`, `` `...` ``, and `Open3`? Exeggutor provides one simple method that a handles many different use cases - safely spawn processes with real-time output, captured stdout/stderr, and sane error handling.
 
+From this:
+
+<img src="./misc/left.png" alt="GitHub Logo">
+
+To this:
+
+<img src="./misc/right.png" alt="GitHub Logo" width="500">
+
+#### Examples
+
 ```ruby
 # Copy old_file to #{new_dir}/foo, and raise an exception if it fails
 exeg(%W[cp #{old_file} #{new_dir}/foo]) # Exception raised by default on failure
@@ -12,20 +22,27 @@ exeg(%W[cp #{old_file} #{new_dir}/foo]) # Exception raised by default on failure
 # printed out to stderr
 output = exeg(%W[run_build.sh], show_stderr: true).stdout
 
+# Lots of overrides
+exit_code = exeg(
+  %W[foo bar],
+  env: {SOME_OVERRIDE: "1"}, # Override env vars
+  chdir: "/path/to/...", # Run the process in a different working directory
+  can_fail: true, # Don't throw an exception, handle the error manually or ignore
+  stdin: "foo", # Send this data to stdin as soon as the process starts
+)
+
 # Async execution
 handle = exeg_async(%W[long_running_process.sh])
 handle.on_stdout do |line|
   puts "new line from stdout: #{line}"
 end
+# Do other stuff...
+# #result waits for execution to finish, then gets the same result
+# object that the non-blocking variant returns
+result = handle.result
+
+puts "stderr: #{result.stderr}, exit code: #{result.exit_code}"
 ```
-
-From this:
-
-<img src="./misc/left.png" alt="GitHub Logo">
-
-To this:
-
-<img src="./misc/right.png" alt="GitHub Logo" width="500">
 
 #### Overview
 
@@ -37,7 +54,7 @@ Although Ruby has many different ways of running a subprocess, they all have var
 |Non-subshells use ugly varargs syntax (e.g. `system('cp', old, "#{new}/foo")`)        |Exeggutor encourages elegant %W syntax by taking an array for the arguments parameter (e.g. `exeg(%W[cp #{old} #{new}/foo])`)|
 |Process failures are silent, requiring manual checks|Exeggutor raises an exception on failure by default (with rich error context)|
 |No simple way to both capture stdout/stderr as strings afterwards and also print them to the shell in real-time |Exeggutor always captures stdout/stderr, and can optionally print them in real-time|
-|Different APIs for different use cases|Exeggutor consists of a single method with smart defaults and many optional named parameters|
+|Different APIs for different use cases|Exeggutor consists of just one method for blocking calls, and one for non-blocking, with smart defaults and many optional named parameters|
 
 #### Installation
 
