@@ -4,8 +4,6 @@
 
 Tired of juggling between `system(...)`, `` `...` ``, and `Open3`? Exeggutor provides one simple method that a handles many different use cases - safely spawn processes with real-time output, captured stdout/stderr, and sane error handling.
 
-![Alt text](misc/left.png "From this:")
-![Alt text](misc/right.png "To this:")
 ```ruby
 # Copy old_file to #{new_dir}/foo, and raise an exception if it fails
 exeg(%W[cp #{old_file} #{new_dir}/foo]) # Exception raised by default on failure
@@ -31,16 +29,8 @@ handle.on_stdout do |line|
 end
 ```
 
-<div style="display: flex; width: 100%; justify-content: space-between;">
-  <div style="text-align: center; width: 45%;">
-    <div>From this:</div>
-    <img src="left_image_url" alt="Left Image" style="width: 100%; object-fit: contain;">
-  </div>
-  <div style="text-align: center; width: 45%;">
-    <div>to this:</div>
-    <img src="right_image_url" alt="Right Image" style="width: 100%; object-fit: contain;">
-  </div>
-</div>
+![Alt text](./misc/left.png "From this:")
+![Alt text](./misc/right.png "To this:")
 
 #### Overview
 
