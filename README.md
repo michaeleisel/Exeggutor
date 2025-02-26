@@ -48,7 +48,3 @@ gem install exeggutor
 #### Documentation
 
 Docs are available [here](https://www.rubydoc.info/gems/exeggutor/Exeggutor#exeg-class_method).
-
-#### Future directions
-
-Exeggutor is based on my own experiences, which typically involve blocking calls whose failure would prevent the program continuing any further. However, there are many other use cases, such as running shell commands in the REPL (where backticks still shine), non-blocking calls, subshells, and making the subprocess think it's in a TTY. All of these are achievable under the same (or maybe one additional) method, if the demand is there.
