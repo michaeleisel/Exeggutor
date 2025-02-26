@@ -8,13 +8,13 @@ Tired of juggling between `system(...)`, `` `...` ``, and `Open3`? Exeggutor pro
   <div style="flex: 1; margin-right: 10px;">
     <div style="text-align: center;">From this:</div>
     <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
-      <img src="left.png" alt="Left Image" style="height: 100%; width: auto; object-fit: contain;">
+      <img src="misc/left.png" alt="Left Image" style="height: 100%; width: auto; object-fit: contain;">
     </div>
   </div>
   <div style="flex: 1; margin-left: 10px;">
     <div style="text-align: center;">To this:</div>
     <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
-      <img src="right.png" alt="Right Image" style="height: 100%; width: auto; object-fit: contain;">
+      <img src="misc/right.png" alt="Right Image" style="height: 100%; width: auto; object-fit: contain;">
     </div>
   </div>
 </div>
