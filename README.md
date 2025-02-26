@@ -12,16 +12,6 @@ exeg(%W[cp #{old_file} #{new_dir}/foo]) # Exception raised by default on failure
 # printed out to stderr
 output = exeg(%W[run_build.sh], show_stderr: true).stdout
 
-# Manual error handling - diff uses exit code 0 if files are the same, 1 if files are different, and >1 if an error occurred
-diff_result = exeg(%W[diff file1 file2], can_fail: true) # Don't throw an exception, let the developer handle it
-if diff_result.exit_code == 0
-    puts "files are identical"
-elsif diff_result.exit_code == 1
-    puts "Files are different, here's the diff:\n#{diff_result.stdout}"
-else
-    puts "Error occurred: #{diff_result.stderr}"
-end
-
 # Async execution
 handle = exeg_async(%W[long_running_process.sh])
 handle.on_stdout do |line|
