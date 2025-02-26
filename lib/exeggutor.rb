@@ -2,17 +2,13 @@ require 'open3'
 require 'shellwords'
 
 module Exeggutor
-  # Represents an in-progress process execution.
-  #
-  # @attr_reader stdout [String] The standard output of the process.
-  # @attr_reader stderr [String] The standard error of the process.
-  # @attr_reader exit_code [Integer] The exit code of the process.
+  # A handle to a process, with IO handles to communicate with it
+  # and a {ProcessResult} object when it's done
   class ProcessHandle
     attr_accessor :stdin_stream
 
     # @private
     def initialize(args, env: nil, chdir: nil, stdin: nil)
-      # TODO: expand "~"? popen3 doesn't expand it by default
       @stdin_stream, @stdout_stream, @stderr_stream, @wait_thread = Exeggutor::run_popen3(args, env, chdir)
 
       # Make the streams as synchronous as possible, to minimize the possibility of a surprising lack
@@ -52,6 +48,19 @@ module Exeggutor
       end
     end
 
+    # Returns a stream to communicate with stdin and/or close it.
+    #
+    # @return [IO] The stream
+    def stdin_stream
+      @stdin_stream
+    end
+
+    # Calls the given block each time more data from stdout has been received. If data
+    # has already been written to stdout when this is called, it will immediately (synchronously)
+    # call the block with all the data that has been written so far, whether or not the 
+    # process has finished. In this way, no data is ever missed by the block.
+    #
+    # This method may be called multiple times, to allow multiple blocks to subscribe.
     def on_stdout(&block)
       @stdout_mutex.synchronize do
         if @stdout_str.size > 0
@@ -59,8 +68,16 @@ module Exeggutor
         end
         @stdout_subscribers << block
       end
+
+      nil
     end
 
+    # Calls the given block each time more data from stderr has been received. If data
+    # has already been written to stdout when this is called, it will immediately (synchronously)
+    # call the block with all the data that has been written so far, whether or not the 
+    # process has finished. In this way, no data is ever missed by the block.
+    #
+    # This method may be called multiple times, to allow multiple blocks to subscribe.
     def on_stderr(&block)
       @stderr_mutex.synchronize do
         if @stderr_str.size > 0
@@ -68,8 +85,12 @@ module Exeggutor
         end
         @stderr_subscribers << block
       end
+
+      nil
     end
 
+    # Waits for the process to complete, if necessary, and then returns a {ProcessResult}
+    # object with the results
     def result
       return if @result
 
@@ -143,6 +164,7 @@ module Exeggutor
     end
   end
 
+  # @private
   def self.exeg(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil, chdir: nil, stdin: nil)
     raise "args.size must be >= 1" if args.empty?
     handle = ProcessHandle.new(args, env: env, chdir: chdir, stdin: stdin)
@@ -172,7 +194,7 @@ module Exeggutor
   end
 end
 
-# Executes a command with the provided arguments and options
+# Executes a command with the provided arguments and options. Waits for the process to finish.
 #
 # @param args [Array<String>] The command and its arguments as an array.
 # @param can_fail [Boolean] If false, raises a ProcessError on failure.
@@ -180,16 +202,26 @@ end
 # @param show_stderr [Boolean] If true, prints stderr to the console in real-time.
 # @param chdir [String, nil] The working directory to run the command in. If nil, uses the current working directory.
 # @param stdin [String, nil] Input data to pass to the command's stdin. If nil, doesn't pass any data to stdin.
-# @param env_vars [Hash{String => String}, nil] A hashmap containing environment variable overrides,
+# @param env [Hash{String => String}, nil] A hashmap containing environment variable overrides,
 #        or `nil` if no overrides are desired
 #
-# @return [ProcessResult] An object containing process info such as stdout, stderr, and exit code. Waits for the command to complete to return.
+# @return [ProcessResult] An object containing process info such as stdout, stderr, and exit code. 
 #
 # @raise [ProcessError] If the command fails and `can_fail` is false.
 def exeg(...)
   Exeggutor::exeg(...)
 end
 
+# Executes a command with the provided arguments and options. Does not wait for the process to finish.
+#
+# @param args [Array<String>] The command and its arguments as an array.
+# @param chdir [String, nil] The working directory to run the command in. If nil, uses the current working directory.
+# @param env [Hash{String => String}, nil] A hashmap containing environment variable overrides,
+#        or `nil` if no overrides are desired
+#
+# @return [ProcessHandle]
+#
+# @raise [ProcessError] If the command fails and `can_fail` is false.
 def exeg_async(...)
   Exeggutor::ProcessHandle.new(...)
 end
