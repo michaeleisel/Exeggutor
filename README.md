@@ -4,22 +4,8 @@
 
 Tired of juggling between `system(...)`, `` `...` ``, and `Open3`? Exeggutor provides one simple method that a handles many different use cases - safely spawn processes with real-time output, captured stdout/stderr, and sane error handling.
 
-<div style="display: flex; width: 100%; justify-content: space-between;">
-  <div style="flex: 1; margin-right: 10px;">
-    <div style="text-align: center;">From this:</div>
-    <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
-      <img src="misc/left.png" alt="Left Image" style="height: 100%; width: auto; object-fit: contain;">
-    </div>
-  </div>
-  <div style="flex: 1; margin-left: 10px;">
-    <div style="text-align: center;">To this:</div>
-    <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
-      <img src="misc/right.png" alt="Right Image" style="height: 100%; width: auto; object-fit: contain;">
-    </div>
-  </div>
-</div>
-
-
+![Alt text](misc/left.png "From this:")
+![Alt text](misc/right.png "To this:")
 ```ruby
 # Copy old_file to #{new_dir}/foo, and raise an exception if it fails
 exeg(%W[cp #{old_file} #{new_dir}/foo]) # Exception raised by default on failure
