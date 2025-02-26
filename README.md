@@ -4,15 +4,32 @@
 
 Tired of juggling between `system(...)`, `` `...` ``, and `Open3`? Exeggutor provides one simple method that a handles many different use cases - safely spawn processes with real-time output, captured stdout/stderr, and sane error handling.
 
+<div style="display: flex; width: 100%; justify-content: space-between;">
+  <div style="flex: 1; margin-right: 10px;">
+    <div style="text-align: center;">From this:</div>
+    <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
+      <img src="left.png" alt="Left Image" style="height: 100%; width: auto; object-fit: contain;">
+    </div>
+  </div>
+  <div style="flex: 1; margin-left: 10px;">
+    <div style="text-align: center;">To this:</div>
+    <div style="height: 350px; display: flex; align-items: center; justify-content: center;">
+      <img src="right.png" alt="Right Image" style="height: 100%; width: auto; object-fit: contain;">
+    </div>
+  </div>
+</div>
+
+
 ```ruby
 # Copy old_file to #{new_dir}/foo, and raise an exception if it fails
-run!(%W[cp #{old_file} #{new_dir}/foo]) # Exception raised by default on failure
+exeg(%W[cp #{old_file} #{new_dir}/foo]) # Exception raised by default on failure
 
-# Collect stdout from a long-running build task while showing the progress updates as they're printed out to stderr
-output = run!(%W[run_build.sh], show_stderr: true).stdout
+# Collect stdout from a long-running build task while showing the progress updates as they're
+# printed out to stderr
+output = exeg(%W[run_build.sh], show_stderr: true).stdout
 
 # Manual error handling - diff uses exit code 0 if files are the same, 1 if files are different, and >1 if an error occurred
-diff_result = run!(%W[diff file1 file2], can_fail: true) # Don't throw an exception, let the developer handle it
+diff_result = exeg(%W[diff file1 file2], can_fail: true) # Don't throw an exception, let the developer handle it
 if diff_result.exit_code == 0
     puts "files are identical"
 elsif diff_result.exit_code == 1
@@ -20,6 +37,11 @@ elsif diff_result.exit_code == 1
 else
     puts "Error occurred: #{diff_result.stderr}"
 end
+
+# Async execution
+handle = exeg_async(%W[long_running_process.sh])
+handle.on_stdout
+
 ```
 
 <div style="display: flex; width: 100%; justify-content: space-between;">
@@ -40,7 +62,7 @@ Although Ruby has many different ways of running a subprocess, they all have var
 |Problem with Standard Ruby APIs|Exeggutor Solution|
 |-|-|
 |Subshells are slow to spawn, error-prone, and insecure | Exeggutor ever uses a subshell and always runs processes directly|
-|Non-subshells use ugly varargs syntax (e.g. `system('cp', old, "#{new}/foo")`)        |Exeggutor encourages elegant %W syntax by taking an array for the arguments parameter (e.g. `run!(%W[cp #{old} #{new}/foo])`)|
+|Non-subshells use ugly varargs syntax (e.g. `system('cp', old, "#{new}/foo")`)        |Exeggutor encourages elegant %W syntax by taking an array for the arguments parameter (e.g. `exeg(%W[cp #{old} #{new}/foo])`)|
 |Process failures are silent, requiring manual checks|Exeggutor raises an exception on failure by default (with rich error context)|
 |No simple way to both capture stdout/stderr as strings afterwards and also print them to the shell in real-time |Exeggutor always captures stdout/stderr, and can optionally print them in real-time|
 |Different APIs for different use cases|Exeggutor consists of a single method with smart defaults and many optional named parameters|
@@ -53,7 +75,7 @@ gem install exeggutor
 
 #### Documentation
 
-Docs are available [here](https://www.rubydoc.info/gems/exeggutor/Exeggutor#run!-class_method).
+Docs are available [here](https://www.rubydoc.info/gems/exeggutor/Exeggutor#exeg-class_method).
 
 #### Future directions
 
