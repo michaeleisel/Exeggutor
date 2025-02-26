@@ -30,9 +30,11 @@ end
 ```
 
 From this:
+
 <img src="./misc/left.png" alt="GitHub Logo">
 
 To this:
+
 <img src="./misc/right.png" alt="GitHub Logo" width="500">
 
 #### Overview
