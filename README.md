@@ -29,8 +29,11 @@ handle.on_stdout do |line|
 end
 ```
 
-![Alt text](./misc/left.png "From this:")
-![Alt text](./misc/right.png "To this:")
+From this:
+<img src="./misc/left.png" alt="GitHub Logo">
+
+To this:
+<img src="./misc/right.png" alt="GitHub Logo" width="500">
 
 #### Overview
 
