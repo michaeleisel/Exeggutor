@@ -5,88 +5,88 @@ module Exeggutor
   # A handle to a process, with IO handles to communicate with it
   # and a {ProcessResult} object when it's done
   class ProcessHandle
-    attr_accessor :stdin_stream
-
     # @private
-    def initialize(args, env: nil, chdir: nil, stdin: nil)
-      @stdin_stream, @stdout_stream, @stderr_stream, @wait_thread = Exeggutor::run_popen3(args, env, chdir)
+    def initialize(args, env: nil, chdir: nil)
+      @stdin_io, @stdout_io, @stderr_io, @wait_thread = Exeggutor::run_popen3(args, env, chdir)
 
       # Make the streams as synchronous as possible, to minimize the possibility of a surprising lack
       # of output
-      @stdout_stream.sync = true
-      @stderr_stream.sync = true
+      @stdout_io.sync = true
+      @stderr_io.sync = true
 
       @stdout_str = +''  # Using unfrozen strings
       @stderr_str = +''
+      @unread_stdout = +''
+      @unread_stderr = +''
 
-      @stdout_subscribers = []
-      @stderr_subscribers = []
+      @stdout_queue = Queue.new
+      @stderr_queue = Queue.new
 
-      @stdout_mutex = Mutex.new
-      @stderr_mutex = Mutex.new
-
-      @stdout_thread = Thread.new do
-        while (line = @stdout_stream.gets)
-          @stdout_mutex.synchronize do
-            @stdout_str << line
-            for subscriber in @stdout_subscribers
-              subscriber.call(line.dup)
-            end
-          end
-        end
-      end
-
-      @stderr_thread = Thread.new do
-        while (line = @stderr_stream.gets)
-          @stderr_mutex.synchronize do
-            @stderr_str << line
-            for subscriber in @stderr_subscribers
-              subscriber.call(line.dup)
+      # popen3 can deadlock if one stream is written to too much without being read,
+      # so it's important to continuously read from both streams. This is why
+      # we can't just let the user call .gets on the streams themselves
+      @read_thread = Thread.new do
+        remaining_ios = [@stdout_io, @stderr_io]
+        while remaining_ios.size > 0
+          readable_ios, = IO.select(remaining_ios)
+          for readable_io in readable_ios
+            begin
+              data = readable_io.read_nonblock(100_000)
+              if readable_io == @stdout_io
+                handle_new_data(data, @unread_stdout, @stdout_queue)
+              else
+                handle_new_data(data, @unread_stderr, @stderr_queue)
+              end
+            rescue IO::WaitReadable
+              # Shouldn't usually happen because IO.select indicated data is ready, but maybe due to EINTR or something
+              next
+            rescue EOFError
+              remaining_ios.delete(readable_io)
             end
           end
         end
       end
     end
 
-    # Returns a stream to communicate with stdin and/or close it.
-    #
-    # @return [IO] The stream
-    def stdin_stream
-      @stdin_stream
+    # @private
+    def handle_new_data(new_data, unread_data, queue)
+      unread_data << new_data
+      loop do
+        index = unread_data.index("\n")
+        break if !index
+        queue.push(unread_data.slice!(0, index))
+      end
     end
 
-    # Calls the given block each time more data from stdout has been received. If data
-    # has already been written to stdout when this is called, it will immediately (synchronously)
-    # call the block with all the data that has been written so far, whether or not the 
-    # process has finished. In this way, no data is ever missed by the block.
-    #
-    # This method may be called multiple times, to allow multiple blocks to subscribe.
-    def on_stdout(&block)
+    def stdout_gets
       @stdout_mutex.synchronize do
-        if @stdout_str.size > 0
-          yield(@stdout_str.dup)
+        loop do
+          index = @unread_stdout.index("\n")
+          return @unread_stdout.slice!(0, index) if index
+          @cond.wait(@stdout_mutex)
         end
-        @stdout_subscribers << block
       end
-
-      nil
     end
 
-    # Calls the given block each time more data from stderr has been received. If data
-    # has already been written to stdout when this is called, it will immediately (synchronously)
-    # call the block with all the data that has been written so far, whether or not the 
-    # process has finished. In this way, no data is ever missed by the block.
-    #
-    # This method may be called multiple times, to allow multiple blocks to subscribe.
-    def on_stderr(&block)
+    def stderr_gets
       @stderr_mutex.synchronize do
-        if @stderr_str.size > 0
-          yield(@stderr_str.dup)
-        end
-        @stderr_subscribers << block
       end
+    end
 
-      nil
+    # Writes data to stdin
+    #
+    # @param data [String] The data to write to stdin
+    def write_to_stdin(data)
+      @stdin_io.write(data)
+    end
+
+    # Closes stdin. Calling this after the stream is already closed is a no-op.
+    def close_stdin
+      @stdin_io.close if !@stdin_io.closed?
+    end
+
+    def pid
+      @wait_thread.pid
     end
 
     # Waits for the process to complete, if necessary, and then returns a {ProcessResult}
@@ -94,7 +94,7 @@ module Exeggutor
     def result
       return if @result
 
-      @stdin_stream.close if !@stdin_stream.closed?
+      @stdin_io.close if !@stdin_io.closed?
 
       exit_status = @wait_thread.value
 
@@ -103,13 +103,14 @@ module Exeggutor
       @stderr_thread.join
 
       # Close open pipes
-      @stdout_stream.close
-      @stderr_stream.close
+      @stdout_io.close
+      @stderr_io.close
 
       @result = ProcessResult.new(
-        stdout: @stdout_str.force_encoding('UTF-8'),
-        stderr: @stderr_str.force_encoding('UTF-8'),
+        stdout: @stdout_str,
+        stderr: @stderr_str,
         exit_code: exit_status.exitstatus
+        pid: self.pid
       )
 
       @result
@@ -122,13 +123,14 @@ module Exeggutor
   # @attr_reader stderr [String] The standard error of the process.
   # @attr_reader exit_code [Integer] The exit code of the process.
   class ProcessResult
-    attr_reader :stdout, :stderr, :exit_code
+    attr_reader :stdout, :stderr, :exit_code, :pid
 
     # @private
-    def initialize(stdout:, stderr:, exit_code:)
+    def initialize(stdout:, stderr:, exit_code:, pid:)
       @stdout = stdout
       @stderr = stderr
       @exit_code = exit_code
+      @pid = pid
     end
 
     # Checks if the process was successful.
@@ -165,11 +167,11 @@ module Exeggutor
   end
 
   # @private
-  def self.exeg(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil, chdir: nil, stdin: nil)
+  def self.exeg(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil, chdir: nil, stdin_data: nil)
     raise "args.size must be >= 1" if args.empty?
-    handle = ProcessHandle.new(args, env: env, chdir: chdir, stdin: stdin)
-    handle.stdin_stream.write(stdin) if stdin
-    handle.stdin_stream.close
+    handle = ProcessHandle.new(args, env: env, chdir: chdir)
+    handle.stdin_io.write(stdin_data) if stdin_data
+    handle.stdin_io.close
 
     handle.on_stdout do |str|
       puts str if show_stdout
@@ -186,6 +188,7 @@ module Exeggutor
         Exit code: #{result.exit_code}
         stdout: #{result.stdout}
         stderr: #{result.stderr}
+        pid: #{result.pid}
       ERROR_STR
       raise ProcessError.new(result), error_str
     end
