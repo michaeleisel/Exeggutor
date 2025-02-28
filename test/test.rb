@@ -18,43 +18,28 @@ class TestYourGem < Minitest::Test
     assert_equal "this is stderr\n", error.result.stderr
     assert_equal "this is stdout\n", error.result.stdout
 
-    result = exeg(%W[cat], stdin: "hi")
-    assert_equal "hi", result.stdout
+    exeg(%W[ruby -e #{script}], show_stdout: true)
+    exeg(%W[ruby -e #{script}], show_stderr: true)
 
+    result = exeg(%W[cat], stdin_data: "hi")
+    assert_equal "hi", result.stdout
+    assert_equal true, result.pid > 0
   end
 
   def test_async
     return if ENV["EXEG_SKIP_ASYNC"] == "1"
 
-    handle = exeg_async(%W[ruby -e] + ["puts 'foo' ; sleep 2 ; warn 'bar' ; sleep 2 ; puts 'done'"])
-    sleep 1
-    stdout_calls = 0
-    handle.on_stdout do |str|
-      if stdout_calls == 0
-        assert_equal("foo\n", str)
-      elsif stdout_calls == 1
-        assert_equal("done\n", str)
-      else
-        raise
-      end
-      stdout_calls += 1
-    end
-
-    stderr_calls = 0
-    handle.on_stderr do |str|
-      assert_equal(stderr_calls, 0)
-      assert_equal("bar\n", str)
-      stderr_calls += 1
-    end
-    result = handle.result
-    assert_equal(result.stdout, "foo\ndone\n")
-    assert_equal(result.stderr, "bar\n")
-    assert_equal(result.exit_code, 0)
+    handle = exeg_async(%W[ruby -e] + ["puts 'foo' ; sleep 1 ; warn 'bar' ; sleep 1 ; print 'done'"])
+    assert_equal(handle.stdout.gets, "foo\n")
+    assert_equal(handle.stderr.gets, "bar\n")
+    assert_equal(handle.stdout.gets, "done")
+    assert_equal(handle.stdout.gets, nil)
+    assert_equal(handle.stderr.gets, nil)
   end
 
   def test_chdir
     handle = exeg_async(%W[false])
-    assert_equal(handle.result.exit_code, 1)
+    assert_equal(handle.wait_thr.value.exitstatus, 1)
 
     Dir.mktmpdir do |dir|
       assert_equal(exeg(%W[pwd], chdir: dir).stdout, "#{File.realpath(dir)}\n")
