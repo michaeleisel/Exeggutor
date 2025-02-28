@@ -1,6 +1,6 @@
 # Exeggutor 🌴
 
-#### A Simple, Capable, and Unified Interface for Running Subprocesses in Ruby
+#### A Simple, Capable, and Unified Interface for Managing Subprocesses in Ruby
 
 Tired of juggling between `system(...)`, `` `...` ``, and `Open3`? Exeggutor provides one simple method that a handles many different use cases - safely spawn processes with real-time output, captured stdout/stderr, and sane error handling.
 
