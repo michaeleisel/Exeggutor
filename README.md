@@ -2,15 +2,15 @@
 
 #### A Simple, Capable, and Unified Interface for Managing Subprocesses in Ruby
 
-Tired of juggling between `system(...)`, `` `...` ``, and `Open3`? Exeggutor provides one simple method that handles many different use cases - safely spawn processes with real-time output, captured stdout/stderr, and sane error handling.
+Tired of juggling `system(...)`, `` `...` ``, and `Open3`? Exeggutor provides one simple method that handles many different use cases - safely spawn processes with real-time output, captured stdout/stderr, and sane error handling.
 
 From this:
 
-<img src="./misc/left.png" alt="GitHub Logo">
+<img src="./misc/left.png" alt="Before using Exeggutor">
 
 To this:
 
-<img src="./misc/right.png" alt="GitHub Logo" width="500">
+<img src="./misc/right.png" alt="After using Exeggutor" width="500">
 
 #### Examples
 
@@ -43,11 +43,11 @@ Although Ruby has many different ways of running a subprocess, they all have var
 
 |Problem with Standard Ruby APIs|Exeggutor Solution|
 |-|-|
-|Subshells are slow to spawn, error-prone, and insecure | Exeggutor ever uses a subshell and always runs processes directly|
+|Subshells are slow to spawn, error-prone, and insecure | Exeggutor never uses a subshell and always runs processes directly|
 |Non-subshells use ugly varargs syntax (e.g. `system('cp', old, "#{new}/foo")`)        |Exeggutor encourages elegant %W syntax by taking an array for the arguments parameter (e.g. `exeg(%W[cp #{old} #{new}/foo])`)|
 |Process failures are silent, requiring manual checks|Exeggutor raises an exception on failure by default (with rich error context)|
 |No simple way to both capture stdout/stderr as strings afterwards and also print them to the shell in real-time |Exeggutor always captures stdout/stderr, and can optionally print them in real-time|
-|Different APIs for different use cases|Exeggutor consists of just one method for blocking calls, and one for non-blocking, with smart defaults and many optional named parameters|
+|Different APIs for different use cases|Exeggutor provides a single method for blocking calls and another for non-blocking execution, with smart defaults and flexible named parameters|
 
 #### Installation
 
