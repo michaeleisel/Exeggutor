@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = "exeggutor"
-  s.version     = "0.1.3"
+  s.version     = "0.1.4"
   s.summary     = "A Simple, Capable, and Unified Interface for Running Subprocesses in Ruby"
   # s.description = "A longer description of your gem"
   s.authors     = ["Michael Eisel"]
