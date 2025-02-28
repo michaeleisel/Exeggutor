@@ -3,7 +3,10 @@ require 'shellwords'
 
 module Exeggutor
   # A handle to a process, with IO handles to communicate with it
-  # and a {ProcessResult} object when it's done
+  # and a {ProcessResult} object when it's done. It's largely similar to the array
+  # of 4 values return by {Open3.popen3}. However, it doesn't suffer from that library's
+  # dead-locking issue. For example, even if lots of data has been written to stdout that hasn't been
+  # read, the subprocess can still write to stdout and stderr without blocking
   class ProcessHandle
     # @private
     def initialize(args, env: nil, chdir: nil)
@@ -14,13 +17,29 @@ module Exeggutor
       @stdout_io.sync = true
       @stderr_io.sync = true
 
-      @stdout_str = +''  # Using unfrozen strings
-      @stderr_str = +''
-      @unread_stdout = +''
-      @unread_stderr = +''
-
       @stdout_queue = Queue.new
       @stderr_queue = Queue.new
+
+      @stdout_pipe_reader, @stdout_pipe_writer = IO.pipe
+      @stderr_pipe_reader, @stderr_pipe_writer = IO.pipe
+
+      @stdout_write_thread = Thread.new do
+        loop do
+          data = @stdout_queue.pop
+          break if !data # Queue is closed
+          @stdout_pipe_writer.write(data)
+        end
+        @stdout_pipe_writer.close
+      end
+
+      @stderr_write_thread = Thread.new do
+        loop do
+          data = @stderr_queue.pop
+          break if !data # Queue is closed
+          @stderr_pipe_writer.write(data)
+        end
+        @stderr_pipe_writer.close
+      end
 
       # popen3 can deadlock if one stream is written to too much without being read,
       # so it's important to continuously read from both streams. This is why
@@ -33,14 +52,19 @@ module Exeggutor
             begin
               data = readable_io.read_nonblock(100_000)
               if readable_io == @stdout_io
-                handle_new_data(data, @unread_stdout, @stdout_queue)
+                @stdout_queue.push(data)
               else
-                handle_new_data(data, @unread_stderr, @stderr_queue)
+                @stderr_queue.push(data)
               end
             rescue IO::WaitReadable
               # Shouldn't usually happen because IO.select indicated data is ready, but maybe due to EINTR or something
               next
             rescue EOFError
+              if readable_io == @stdout_io
+                @stdout_queue.close
+              else
+                @stderr_queue.close
+              end
               remaining_ios.delete(readable_io)
             end
           end
@@ -48,72 +72,25 @@ module Exeggutor
       end
     end
 
-    # @private
-    def handle_new_data(new_data, unread_data, queue)
-      unread_data << new_data
-      loop do
-        index = unread_data.index("\n")
-        break if !index
-        queue.push(unread_data.slice!(0, index))
-      end
+    # An object containing process metadata and which can be waited on to wait
+    # until the subprocess ends. Identical to popen3's wait_thr
+    def wait_thr
+      @wait_thread
     end
 
-    def stdout_gets
-      @stdout_mutex.synchronize do
-        loop do
-          index = @unread_stdout.index("\n")
-          return @unread_stdout.slice!(0, index) if index
-          @cond.wait(@stdout_mutex)
-        end
-      end
+    # An IO object for stdin that can be written to
+    def stdin
+      @stdin_io
     end
 
-    def stderr_gets
-      @stderr_mutex.synchronize do
-      end
+    # An IO object for stdout that can be written to
+    def stdout
+      @stdout_pipe_reader
     end
 
-    # Writes data to stdin
-    #
-    # @param data [String] The data to write to stdin
-    def write_to_stdin(data)
-      @stdin_io.write(data)
-    end
-
-    # Closes stdin. Calling this after the stream is already closed is a no-op.
-    def close_stdin
-      @stdin_io.close if !@stdin_io.closed?
-    end
-
-    def pid
-      @wait_thread.pid
-    end
-
-    # Waits for the process to complete, if necessary, and then returns a {ProcessResult}
-    # object with the results
-    def result
-      return if @result
-
-      @stdin_io.close if !@stdin_io.closed?
-
-      exit_status = @wait_thread.value
-
-      # Ensure all IO is complete
-      @stdout_thread.join
-      @stderr_thread.join
-
-      # Close open pipes
-      @stdout_io.close
-      @stderr_io.close
-
-      @result = ProcessResult.new(
-        stdout: @stdout_str,
-        stderr: @stderr_str,
-        exit_code: exit_status.exitstatus
-        pid: self.pid
-      )
-
-      @result
+    # An IO object for stderr that can be written to
+    def stderr
+      @stderr_pipe_reader
     end
   end
 
@@ -169,19 +146,49 @@ module Exeggutor
   # @private
   def self.exeg(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil, chdir: nil, stdin_data: nil)
     raise "args.size must be >= 1" if args.empty?
-    handle = ProcessHandle.new(args, env: env, chdir: chdir)
-    handle.stdin_io.write(stdin_data) if stdin_data
-    handle.stdin_io.close
 
-    handle.on_stdout do |str|
-      puts str if show_stdout
+    stdin_io, stdout_io, stderr_io, wait_thr = Exeggutor::run_popen3(args, env, chdir)
+    stdin_io.write(stdin_data) if stdin_data
+    stdin_io.close
+
+    # Make the streams as synchronous as possible, to minimize the possibility of a surprising lack
+    # of output
+    stdout_io.sync = true
+    stderr_io.sync = true
+
+    stdout = +''
+    stderr = +''
+
+    # Although there could be more code sharing between this and exeg_async, it would either complicate exeg_async's inner workings
+    # or force us to pay the same performance cost that exeg_async does
+    remaining_ios = [stdout_io, stderr_io]
+    while remaining_ios.size > 0
+      readable_ios, = IO.select(remaining_ios)
+      for readable_io in readable_ios
+        begin
+          data = readable_io.read_nonblock(100_000)
+          if readable_io == stdout_io
+            stdout << data
+            $stdout.print(data) if show_stdout
+          else
+            stderr << data
+            $stderr.print(data) if show_stderr
+          end
+        rescue IO::WaitReadable
+          # Shouldn't usually happen because IO.select indicated data is ready, but maybe due to EINTR or something
+          next
+        rescue EOFError
+          remaining_ios.delete(readable_io)
+        end
+      end
     end
 
-    handle.on_stderr do |str|
-      warn str if show_stderr
-    end
-
-    result = handle.result
+    result = ProcessResult.new(
+      stdout: stdout,
+      stderr: stderr,
+      exit_code: wait_thr.value.exitstatus,
+      pid: wait_thr.pid
+    )
     if !can_fail && !result.success?
       error_str = <<~ERROR_STR
         Command failed: #{args.shelljoin}
