@@ -23,7 +23,7 @@ exeg(%W[cp #{old_file} #{new_dir}/foo]) # Exception raised by default on failure
 output = exeg(%W[run_build.sh], show_stderr: true).stdout
 
 # Lots of overrides
-exit_code = exeg(
+result = exeg(
   %W[foo bar],
   env: {SOME_OVERRIDE: "1"}, # Override env vars
   chdir: "/path/to/...", # Run the process in a different working directory
@@ -31,17 +31,10 @@ exit_code = exeg(
   stdin: "foo", # Send this data to stdin as soon as the process starts
 )
 
-# Async execution
+# Async execution - like popen3, but without its deadlock issue
 handle = exeg_async(%W[long_running_process.sh])
-handle.on_stdout do |line|
-  puts "new line from stdout: #{line}"
-end
-# Do other stuff...
-# #result waits for execution to finish, then gets the same result
-# object that the non-blocking variant returns
-result = handle.result
-
-puts "stderr: #{result.stderr}, exit code: #{result.exit_code}"
+handle.stdin.write("request")
+response = handle.stdout.gets
 ```
 
 #### Overview
