@@ -2,9 +2,10 @@ require 'open3'
 require 'shellwords'
 
 module Exeggutor
+
   # A handle to a process, with IO handles to communicate with it
   # and a {ProcessResult} object when it's done. It's largely similar to the array
-  # of 4 values return by {Open3.popen3}. However, it doesn't suffer from that library's
+  # of 4 values return by Open3.popen3. However, it doesn't suffer from that library's
   # dead-locking issue. For example, even if lots of data has been written to stdout that hasn't been
   # read, the subprocess can still write to stdout and stderr without blocking
   class ProcessHandle
@@ -143,65 +144,6 @@ module Exeggutor
     end
   end
 
-  # @private
-  def self.exeg(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil, chdir: nil, stdin_data: nil)
-    raise "args.size must be >= 1" if args.empty?
-
-    stdin_io, stdout_io, stderr_io, wait_thr = Exeggutor::run_popen3(args, env, chdir)
-    stdin_io.write(stdin_data) if stdin_data
-    stdin_io.close
-
-    # Make the streams as synchronous as possible, to minimize the possibility of a surprising lack
-    # of output
-    stdout_io.sync = true
-    stderr_io.sync = true
-
-    stdout = +''
-    stderr = +''
-
-    # Although there could be more code sharing between this and exeg_async, it would either complicate exeg_async's inner workings
-    # or force us to pay the same performance cost that exeg_async does
-    remaining_ios = [stdout_io, stderr_io]
-    while remaining_ios.size > 0
-      readable_ios, = IO.select(remaining_ios)
-      for readable_io in readable_ios
-        begin
-          data = readable_io.read_nonblock(100_000)
-          if readable_io == stdout_io
-            stdout << data
-            $stdout.print(data) if show_stdout
-          else
-            stderr << data
-            $stderr.print(data) if show_stderr
-          end
-        rescue IO::WaitReadable
-          # Shouldn't usually happen because IO.select indicated data is ready, but maybe due to EINTR or something
-          next
-        rescue EOFError
-          remaining_ios.delete(readable_io)
-        end
-      end
-    end
-
-    result = ProcessResult.new(
-      stdout: stdout,
-      stderr: stderr,
-      exit_code: wait_thr.value.exitstatus,
-      pid: wait_thr.pid
-    )
-    if !can_fail && !result.success?
-      error_str = <<~ERROR_STR
-        Command failed: #{args.shelljoin}
-        Exit code: #{result.exit_code}
-        stdout: #{result.stdout}
-        stderr: #{result.stderr}
-        pid: #{result.pid}
-      ERROR_STR
-      raise ProcessError.new(result), error_str
-    end
-
-    result
-  end
 end
 
 # Executes a command with the provided arguments and options. Waits for the process to finish.
@@ -218,8 +160,63 @@ end
 # @return {ProcessResult} An object containing process info such as stdout, stderr, and exit code.
 #
 # @raise {ProcessError} If the command fails and `can_fail` is false.
-def exeg(...)
-  Exeggutor::exeg(...)
+def exeg(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil, chdir: nil, stdin_data: nil)
+  raise "args.size must be >= 1" if args.empty?
+
+  stdin_io, stdout_io, stderr_io, wait_thr = Exeggutor::run_popen3(args, env, chdir)
+  stdin_io.write(stdin_data) if stdin_data
+  stdin_io.close
+
+  # Make the streams as synchronous as possible, to minimize the possibility of a surprising lack
+  # of output
+  stdout_io.sync = true
+  stderr_io.sync = true
+
+  stdout = +''
+  stderr = +''
+
+  # Although there could be more code sharing between this and exeg_async, it would either complicate exeg_async's inner workings
+  # or force us to pay the same performance cost that exeg_async does
+  remaining_ios = [stdout_io, stderr_io]
+  while remaining_ios.size > 0
+    readable_ios, = IO.select(remaining_ios)
+    for readable_io in readable_ios
+      begin
+        data = readable_io.read_nonblock(100_000)
+        if readable_io == stdout_io
+          stdout << data
+          $stdout.print(data) if show_stdout
+        else
+          stderr << data
+          $stderr.print(data) if show_stderr
+        end
+      rescue IO::WaitReadable
+        # Shouldn't usually happen because IO.select indicated data is ready, but maybe due to EINTR or something
+        next
+      rescue EOFError
+        remaining_ios.delete(readable_io)
+      end
+    end
+  end
+
+  result = ProcessResult.new(
+    stdout: stdout,
+    stderr: stderr,
+    exit_code: wait_thr.value.exitstatus,
+    pid: wait_thr.pid
+  )
+  if !can_fail && !result.success?
+    error_str = <<~ERROR_STR
+      Command failed: #{args.shelljoin}
+      Exit code: #{result.exit_code}
+      stdout: #{result.stdout}
+      stderr: #{result.stderr}
+      pid: #{result.pid}
+    ERROR_STR
+    raise ProcessError.new(result), error_str
+  end
+
+  result
 end
 
 # Executes a command with the provided arguments and options. Does not wait for the process to finish.
@@ -230,6 +227,6 @@ end
 #        or `nil` if no overrides are desired
 #
 # @return {ProcessHandle}
-def exeg_async(...)
-  Exeggutor::ProcessHandle.new(...)
+def exeg_async(args, env: nil, chdir: nil)
+  Exeggutor::ProcessHandle.new(args, env: env, chdir: chdir)
 end
