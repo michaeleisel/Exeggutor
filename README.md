@@ -57,4 +57,4 @@ gem install exeggutor
 
 #### Documentation
 
-Docs are available [here](https://www.rubydoc.info/gems/exeggutor/Exeggutor#exeg-class_method).
+Docs are available [here](https://www.rubydoc.info/gems/exeggutor/toplevel).

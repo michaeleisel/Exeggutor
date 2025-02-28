@@ -121,7 +121,7 @@ module Exeggutor
   # Represents an error that occurs during a process execution.
   # The error contains a {ProcessResult} object with details about the process.
   #
-  # @attr_reader result [ProcessResult] The result of the process execution.
+  # @attr_reader result {ProcessResult} The result of the process execution.
   class ProcessError < StandardError
     attr_reader :result
 
@@ -215,9 +215,9 @@ end
 # @param env [Hash{String => String}, nil] A hashmap containing environment variable overrides,
 #        or `nil` if no overrides are desired
 #
-# @return [ProcessResult] An object containing process info such as stdout, stderr, and exit code. 
+# @return {ProcessResult} An object containing process info such as stdout, stderr, and exit code.
 #
-# @raise [ProcessError] If the command fails and `can_fail` is false.
+# @raise {ProcessError} If the command fails and `can_fail` is false.
 def exeg(...)
   Exeggutor::exeg(...)
 end
@@ -229,9 +229,7 @@ end
 # @param env [Hash{String => String}, nil] A hashmap containing environment variable overrides,
 #        or `nil` if no overrides are desired
 #
-# @return [ProcessHandle]
-#
-# @raise [ProcessError] If the command fails and `can_fail` is false.
+# @return {ProcessHandle}
 def exeg_async(...)
   Exeggutor::ProcessHandle.new(...)
 end
