@@ -199,7 +199,7 @@ def exeg(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil
     end
   end
 
-  result = ProcessResult.new(
+  result = Exeggutor::ProcessResult.new(
     stdout: stdout,
     stderr: stderr,
     exit_code: wait_thr.value.exitstatus,
@@ -213,7 +213,7 @@ def exeg(args, can_fail: false, show_stdout: false, show_stderr: false, env: nil
       stderr: #{result.stderr}
       pid: #{result.pid}
     ERROR_STR
-    raise ProcessError.new(result), error_str
+    raise Exeggutor::ProcessError.new(result), error_str
   end
 
   result

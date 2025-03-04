@@ -18,8 +18,8 @@ class TestYourGem < Minitest::Test
     assert_equal "this is stderr\n", error.result.stderr
     assert_equal "this is stdout\n", error.result.stdout
 
-    exeg(%W[ruby -e #{script}], show_stdout: true)
-    exeg(%W[ruby -e #{script}], show_stderr: true)
+    exeg(%W[ruby -e #{script}], show_stdout: true, can_fail: true)
+    exeg(%W[ruby -e #{script}], show_stderr: true, can_fail: true)
 
     result = exeg(%W[cat], stdin_data: "hi")
     assert_equal "hi", result.stdout
